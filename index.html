@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Memory Locker</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: rgba(15, 23, 42, 0.8);
+      --card: #1e293b;
+      --card-front: #e2e8f0;
+      --accent: #f97316;
+      --accent-2: #38bdf8;
+      --text: #f8fafc;
+      --shadow: 0 20px 40px rgba(15, 23, 42, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.15), transparent 35%),
+        radial-gradient(circle at 80% 10%, rgba(249, 115, 22, 0.2), transparent 40%),
+        radial-gradient(circle at 50% 90%, rgba(34, 197, 94, 0.15), transparent 35%),
+        linear-gradient(135deg, #0f172a, #020617);
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      padding: 24px 16px 40px;
+    }
+
+    .texture {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(120deg, rgba(148, 163, 184, 0.08) 25%, transparent 25%),
+        linear-gradient(300deg, rgba(148, 163, 184, 0.08) 25%, transparent 25%);
+      background-size: 40px 40px;
+      opacity: 0.4;
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    .app {
+      width: min(1100px, 100%);
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 3vw, 2.8rem);
+      letter-spacing: 0.04em;
+    }
+
+    .panel {
+      background: var(--panel);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      backdrop-filter: blur(16px);
+    }
+
+    .stats {
+      display: grid;
+      gap: 12px;
+    }
+
+    .stat {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      background: rgba(30, 41, 59, 0.6);
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.15);
+    }
+
+    .stat span {
+      font-weight: 600;
+    }
+
+    .controls {
+      display: grid;
+      gap: 12px;
+    }
+
+    button, select {
+      font: inherit;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, var(--accent), #fb7185);
+      color: #fff7ed;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 10px 20px rgba(249, 115, 22, 0.25);
+    }
+
+    .btn.secondary {
+      background: rgba(148, 163, 184, 0.15);
+      color: var(--text);
+      box-shadow: none;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .select-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    select {
+      background: rgba(15, 23, 42, 0.8);
+      color: var(--text);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+
+    .board-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .board {
+      display: grid;
+      gap: 12px;
+      width: min(100%, 680px);
+      perspective: 1400px;
+    }
+
+    .card {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      cursor: pointer;
+      transform-style: preserve-3d;
+      transition: transform 0.6s ease;
+    }
+
+    .card.flipped {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      inset: 0;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      backface-visibility: hidden;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      user-select: none;
+    }
+
+    .card-back {
+      background:
+        radial-gradient(circle at 30% 30%, rgba(56, 189, 248, 0.4), transparent 60%),
+        linear-gradient(135deg, #1e293b, #0f172a);
+    }
+
+    .card-front {
+      background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+      transform: rotateY(180deg);
+      color: #0f172a;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 600;
+    }
+
+    .card.matched .card-front {
+      background: linear-gradient(135deg, #22c55e, #4ade80);
+      color: #052e16;
+    }
+
+    .score {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent-2);
+    }
+
+    .hint {
+      font-size: 0.9rem;
+      color: rgba(226, 232, 240, 0.7);
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      padding: 20px;
+    }
+
+    .overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: rgba(15, 23, 42, 0.95);
+      border-radius: 24px;
+      padding: 28px;
+      max-width: 420px;
+      text-align: center;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      box-shadow: var(--shadow);
+    }
+
+    .modal h2 {
+      margin-top: 0;
+    }
+
+    .modal p {
+      margin: 10px 0;
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        text-align: center;
+      }
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 16px 12px 32px;
+      }
+
+      .panel {
+        padding: 16px;
+      }
+
+      .card-face {
+        border-radius: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="texture" aria-hidden="true"></div>
+  <div class="app">
+    <header>
+      <div class="panel">
+        <h1>Memory Locker</h1>
+        <p class="hint">Retourne les cartes, trouve toutes les paires, et bats ton meilleur score !</p>
+      </div>
+      <div class="panel stats">
+        <div class="stat"><span>Coups</span><strong id="moves">0</strong></div>
+        <div class="stat"><span>Temps</span><strong id="time">00:00</strong></div>
+        <div class="stat"><span>Score</span><strong class="score" id="score">0</strong></div>
+      </div>
+      <div class="panel controls">
+        <div class="select-wrap">
+          <label for="difficulty">Difficulté</label>
+          <select id="difficulty">
+            <option value="4">4 x 4 (Classique)</option>
+            <option value="6">6 x 6 (Expert)</option>
+          </select>
+        </div>
+        <button class="btn" id="reset">Reset</button>
+      </div>
+    </header>
+
+    <div class="board-wrap panel">
+      <div class="board" id="board" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h2>Victoire !</h2>
+      <p>Tu as trouvé toutes les paires.</p>
+      <p><strong>Coups :</strong> <span id="final-moves">0</span></p>
+      <p><strong>Temps :</strong> <span id="final-time">00:00</span></p>
+      <p><strong>Score :</strong> <span id="final-score">0</span></p>
+      <button class="btn" id="replay">Rejouer</button>
+    </div>
+  </div>
+
+  <script>
+    const emojiPool = [
+      "🍓", "🍀", "🌙", "⚡", "🎧", "🎮", "🚀", "🐙", "🍕",
+      "🌸", "🧩", "🎲", "🦊", "🐬", "🍩", "⭐", "🥝", "🎯",
+      "🛸", "🪐", "🌈", "🍭", "🧸", "🦋", "🎹", "🚲", "🎈",
+      "🐠", "🌋", "🎨", "🥨", "🧠", "🧃", "🧭", "🍇", "🐳"
+    ];
+
+    const board = document.getElementById("board");
+    const movesEl = document.getElementById("moves");
+    const timeEl = document.getElementById("time");
+    const scoreEl = document.getElementById("score");
+    const overlay = document.getElementById("overlay");
+    const finalMoves = document.getElementById("final-moves");
+    const finalTime = document.getElementById("final-time");
+    const finalScore = document.getElementById("final-score");
+    const difficultySelect = document.getElementById("difficulty");
+
+    let gridSize = 4;
+    let firstCard = null;
+    let secondCard = null;
+    let lockBoard = false;
+    let moves = 0;
+    let matchedPairs = 0;
+    let timerInterval = null;
+    let secondsElapsed = 0;
+
+    const shuffle = (array) => array.sort(() => Math.random() - 0.5);
+
+    const startTimer = () => {
+      if (timerInterval) return;
+      timerInterval = setInterval(() => {
+        secondsElapsed += 1;
+        updateTimer();
+        updateScore();
+      }, 1000);
+    };
+
+    const stopTimer = () => {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    };
+
+    const updateTimer = () => {
+      const minutes = String(Math.floor(secondsElapsed / 60)).padStart(2, "0");
+      const seconds = String(secondsElapsed % 60).padStart(2, "0");
+      timeEl.textContent = `${minutes}:${seconds}`;
+    };
+
+    const updateScore = () => {
+      const score = Math.max(0, (secondsElapsed * 10) + (moves * 5));
+      scoreEl.textContent = score;
+      return score;
+    };
+
+    const resetStats = () => {
+      moves = 0;
+      matchedPairs = 0;
+      secondsElapsed = 0;
+      movesEl.textContent = moves;
+      updateTimer();
+      updateScore();
+    };
+
+    const createCard = (emoji, index) => {
+      const card = document.createElement("button");
+      card.className = "card";
+      card.setAttribute("data-emoji", emoji);
+      card.setAttribute("aria-label", `Carte ${index + 1}`);
+      card.innerHTML = `
+        <div class="card-face card-back"></div>
+        <div class="card-face card-front">${emoji}</div>
+      `;
+      card.addEventListener("click", () => flipCard(card));
+      return card;
+    };
+
+    const buildBoard = () => {
+      board.innerHTML = "";
+      board.style.gridTemplateColumns = `repeat(${gridSize}, minmax(0, 1fr))`;
+      const pairCount = (gridSize * gridSize) / 2;
+      const emojis = shuffle([...emojiPool]).slice(0, pairCount);
+      const cards = shuffle([...emojis, ...emojis]);
+      cards.forEach((emoji, index) => board.appendChild(createCard(emoji, index)));
+    };
+
+    const flipCard = (card) => {
+      if (lockBoard || card.classList.contains("flipped") || card.classList.contains("matched")) {
+        return;
+      }
+
+      startTimer();
+      card.classList.add("flipped");
+
+      if (!firstCard) {
+        firstCard = card;
+        return;
+      }
+
+      secondCard = card;
+      moves += 1;
+      movesEl.textContent = moves;
+      updateScore();
+      checkMatch();
+    };
+
+    const checkMatch = () => {
+      if (!firstCard || !secondCard) return;
+
+      const isMatch = firstCard.dataset.emoji === secondCard.dataset.emoji;
+      if (isMatch) {
+        firstCard.classList.add("matched");
+        secondCard.classList.add("matched");
+        matchedPairs += 1;
+        resetSelection();
+        if (matchedPairs === (gridSize * gridSize) / 2) {
+          endGame();
+        }
+        return;
+      }
+
+      lockBoard = true;
+      setTimeout(() => {
+        firstCard.classList.remove("flipped");
+        secondCard.classList.remove("flipped");
+        resetSelection();
+      }, 800);
+    };
+
+    const resetSelection = () => {
+      [firstCard, secondCard] = [null, null];
+      lockBoard = false;
+    };
+
+    const endGame = () => {
+      stopTimer();
+      const finalScoreValue = updateScore();
+      finalMoves.textContent = moves;
+      finalTime.textContent = timeEl.textContent;
+      finalScore.textContent = finalScoreValue;
+      overlay.classList.add("active");
+    };
+
+    const resetGame = () => {
+      stopTimer();
+      resetStats();
+      resetSelection();
+      overlay.classList.remove("active");
+      buildBoard();
+    };
+
+    document.getElementById("reset").addEventListener("click", resetGame);
+    document.getElementById("replay").addEventListener("click", resetGame);
+
+    difficultySelect.addEventListener("change", (event) => {
+      gridSize = Number(event.target.value);
+      resetGame();
+    });
+
+    resetGame();
+  </script>
+</body>
+</html>
